@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedExpert – Clinical Triage System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0f1624;
+    --surface2: #151e30;
+    --surface3: #1c2840;
+    --border: #1e2d45;
+    --border2: #253654;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --accent-glow: rgba(59,130,246,0.18);
+    --critical: #ef4444;
+    --high: #f97316;
+    --medium: #eab308;
+    --low: #22c55e;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --white: #ffffff;
+    --font-display: 'DM Serif Display', serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius: 14px;
+    --radius-sm: 9px;
+    --radius-xs: 5px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(30,45,69,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,45,69,0.5) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -300px; left: -300px;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 20px 100px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 44px 0 36px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+  }
+
+  .logo-area h1 {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    color: var(--white);
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-area h1 span { color: var(--accent); }
+
+  .logo-area p {
+    font-size: 0.75rem;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+  }
+
+  .header-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+  }
+
+  .header-badge {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.25);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 5px 12px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+
+  .header-badge.alt {
+    background: rgba(6,182,212,0.08);
+    border-color: rgba(6,182,212,0.25);
+    color: var(--accent2);
+  }
+
+  /* ── STEP INDICATOR ── */
+  .steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 44px;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 18px; left: 24px; right: 24px;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-dot {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text3);
+    transition: all 0.3s ease;
+  }
+
+  .step.active .step-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 0 18px rgba(59,130,246,0.5);
+  }
+
+  .step.done .step-dot {
+    border-color: var(--low);
+    background: var(--low);
+    color: white;
+  }
+
+  .step-label {
+    font-size: 0.66rem;
+    color: var(--text3);
+    text-align: center;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  .step.active .step-label { color: var(--accent); }
+  .step.done .step-label { color: var(--low); }
+
+  /* ── SECTIONS ── */
+  .section { display: none; animation: fadeUp 0.35s ease forwards; }
+  .section.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 30px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--white);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-sub {
+    font-size: 0.76rem;
+    color: var(--text3);
+    margin-bottom: 26px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── SYMPTOM GRID ── */
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 10px;
+  }
+
+  .symptom-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 15px;
+    color: var(--text2);
+    font-family: var(--font-body);
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .symptom-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--accent-glow);
+  }
+
+  .symptom-btn.selected {
+    border-color: var(--accent);
+    background: rgba(59,130,246,0.13);
+    color: var(--white);
+  }
+
+  .symptom-btn .check {
+    width: 17px; height: 17px;
+    border: 1.5px solid var(--border2);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+    transition: all 0.18s;
+  }
+
+  .symptom-btn.selected .check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ── VITALS ── */
+  .vitals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .input-group label {
+    font-size: 0.78rem;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  .input-group label .unit {
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    margin-left: 5px;
+  }
+
+  .input-group label .normal-range {
+    color: var(--low);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    margin-left: 6px;
+    opacity: 0.75;
+  }
+
+  .input-group input, .input-group select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 15px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+
+  .input-group input::placeholder { color: var(--text3); }
+
+  .input-group input.warn { border-color: var(--medium); }
+  .input-group input.danger { border-color: var(--critical); }
+
+  .vital-hint {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    margin-top: 3px;
+    height: 16px;
+    transition: color 0.2s;
+  }
+
+  .vital-hint.ok { color: var(--low); }
+  .vital-hint.warn { color: var(--medium); }
+  .vital-hint.danger { color: var(--critical); }
+
+  /* ── BACKGROUND ── */
+  .bg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .toggle-group { display: flex; flex-direction: column; gap: 8px; }
+  .toggle-group label { font-size: 0.78rem; color: var(--text2); font-weight: 500; }
+
+  .toggle-options { display: flex; gap: 8px; }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+    font-family: var(--font-body);
+  }
+
+  .toggle-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .toggle-btn.active { border-color: var(--accent2); background: rgba(6,182,212,0.12); color: var(--accent2); font-weight: 600; }
+
+  /* ── BUTTONS ── */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 28px;
+  }
+
+  .btn {
+    padding: 13px 30px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2563eb; box-shadow: 0 0 22px rgba(59,130,246,0.4); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+  }
+  .btn-secondary:hover { border-color: var(--text3); color: var(--text); }
+
+  .btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 0 20px rgba(239,68,68,0.28);
+  }
+  .btn-danger:hover { box-shadow: 0 0 32px rgba(239,68,68,0.45); transform: translateY(-1px); }
+
+  /* ── REVIEW ── */
+  .review-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .review-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 15px 17px;
+  }
+
+  .review-item .ri-label {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 7px;
+  }
+
+  .review-item .ri-val {
+    font-size: 0.88rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .review-symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .symptom-tag {
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    color: var(--accent);
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+  }
+
+  /* ── RESULTS ── */
+  .results-header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-top: 8px;
+  }
+
+  .results-header h2 {
+    font-family: var(--font-display);
+    font-size: 2.1rem;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .results-header p { color: var(--text3); font-size: 0.82rem; font-family: var(--font-mono); }
+
+  /* Urgency banner */
+  .urgency-banner {
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .urgency-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+  }
+
+  .urgency-banner.CRITICAL { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.35); }
+  .urgency-banner.CRITICAL::before { background: var(--critical); }
+  .urgency-banner.HIGH { background: rgba(249,115,22,0.07); border-color: rgba(249,115,22,0.35); }
+  .urgency-banner.HIGH::before { background: var(--high); }
+  .urgency-banner.MEDIUM { background: rgba(234,179,8,0.07); border-color: rgba(234,179,8,0.35); }
+  .urgency-banner.MEDIUM::before { background: var(--medium); }
+  .urgency-banner.LOW { background: rgba(34,197,94,0.07); border-color: rgba(34,197,94,0.35); }
+  .urgency-banner.LOW::before { background: var(--low); }
+
+  .urgency-icon {
+    font-size: 2rem;
+    width: 54px; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .urgency-banner.CRITICAL .urgency-icon { background: rgba(239,68,68,0.15); }
+  .urgency-banner.HIGH .urgency-icon { background: rgba(249,115,22,0.15); }
+  .urgency-banner.MEDIUM .urgency-icon { background: rgba(234,179,8,0.15); }
+  .urgency-banner.LOW .urgency-icon { background: rgba(34,197,94,0.15); }
+
+  .urgency-text { flex: 1; }
+  .urgency-text h3 { font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: 3px; }
+  .urgency-text p { font-size: 0.8rem; color: var(--text2); }
+
+  .urgency-badge {
+    padding: 6px 14px;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    flex-shrink: 0;
+  }
+
+  .badge-CRITICAL { background: rgba(239,68,68,0.18); color: #ef4444; }
+  .badge-HIGH { background: rgba(249,115,22,0.18); color: #f97316; }
+  .badge-MEDIUM { background: rgba(234,179,8,0.18); color: #eab308; }
+  .badge-LOW { background: rgba(34,197,94,0.18); color: #22c55e; }
+
+  /* Action card */
+  .action-card {
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 26px;
+    border: 1px solid;
+  }
+
+  .action-card.CRITICAL, .action-card.HIGH { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.25); }
+  .action-card.MEDIUM { background: rgba(234,179,8,0.05); border-color: rgba(234,179,8,0.25); }
+  .action-card.LOW { background: rgba(34,197,94,0.05); border-color: rgba(34,197,94,0.25); }
+
+  .action-icon { font-size: 2.4rem; flex-shrink: 0; }
+  .action-text h3 { font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: 5px; }
+  .action-text p { font-size: 0.82rem; color: var(--text2); line-height: 1.5; }
+
+  /* Condition cards */
+  .conditions-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 8px; }
+
+  .condition-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.3s ease forwards;
+  }
+
+  .condition-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+  }
+
+  .condition-card.CRITICAL::before { background: var(--critical); }
+  .condition-card.HIGH::before { background: var(--high); }
+  .condition-card.MEDIUM::before { background: var(--medium); }
+  .condition-card.LOW::before { background: var(--low); }
+
+  .condition-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+
+  .condition-name { font-family: var(--font-display); font-size: 1.2rem; color: var(--white); margin-bottom: 3px; }
+  .condition-rank { font-size: 0.68rem; color: var(--text3); font-family: var(--font-mono); }
+
+  .condition-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* Subsumption badge */
+  .subsumption-badge {
+    font-size: 0.62rem;
+    font-family: var(--font-mono);
+    background: rgba(6,182,212,0.12);
+    border: 1px solid rgba(6,182,212,0.25);
+    color: var(--accent2);
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    letter-spacing: 0.5px;
+  }
+
+  /* Confidence bar */
+  .confidence-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .confidence-label { font-size: 0.68rem; color: var(--text3); font-family: var(--font-mono); width: 76px; flex-shrink: 0; }
+
+  .confidence-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+
+  .confidence-fill { height: 100%; border-radius: 3px; transition: width 0.9s ease; }
+  .fill-CRITICAL { background: var(--critical); }
+  .fill-HIGH { background: var(--high); }
+  .fill-MEDIUM { background: var(--medium); }
+  .fill-LOW { background: var(--low); }
+
+  .confidence-val { font-size: 0.7rem; font-family: var(--font-mono); width: 38px; text-align: right; color: var(--text2); }
+
+  /* Explanation */
+  .explanation-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 15px 18px;
+    margin-top: 12px;
+  }
+
+  .explanation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .ex-title {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+
+  .ex-how-why {
+    display: flex;
+    gap: 6px;
+  }
+
+  .ex-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    padding: 3px 9px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    transition: all 0.15s;
+  }
+
+  .ex-btn:hover, .ex-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+
+  .fired-rules { display: flex; flex-direction: column; gap: 5px; }
+
+  .fired-rule {
+    font-size: 0.78rem;
+    color: var(--text2);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+
+  .fired-rule:last-child { border-bottom: none; }
+
+  .fired-rule .rule-id {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 0.68rem;
+    flex-shrink: 0;
+    padding-top: 1px;
+    background: rgba(59,130,246,0.08);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .why-panel {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text2);
+    line-height: 1.7;
+    display: none;
+  }
+
+  .why-panel.visible { display: block; }
+  .why-panel strong { color: var(--text); }
+
+  /* Working memory panel */
+  .wm-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+
+  .wm-title {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 12px;
+  }
+
+  .wm-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .wm-fact {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .wm-fact.bool-true { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: var(--low); }
+  .wm-fact.numeric { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: var(--accent); }
+  .wm-fact.derived { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.2); color: var(--medium); }
+
+  /* Trace log */
+  .trace-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .trace-toggle:hover { border-color: var(--text3); color: var(--text2); }
+
+  .trace-log {
+    background: #030508;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text3);
+    max-height: 280px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .trace-log.open { display: block; }
+  .trace-line { margin-bottom: 5px; line-height: 1.5; }
+  .tl-time { color: var(--text3); margin-right: 8px; }
+  .tl-fire { color: #22c55e; }
+  .tl-info { color: var(--accent2); }
+  .tl-warn { color: var(--medium); }
+  .tl-err { color: var(--critical); }
+  .tl-sub { color: #a78bfa; }
+
+  /* Disclaimer */
+  .disclaimer {
+    background: rgba(239,68,68,0.04);
+    border: 1px solid rgba(239,68,68,0.12);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin-top: 28px;
+    font-size: 0.77rem;
+    color: var(--text3);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .disclaimer .d-icon { flex-shrink: 0; font-size: 1rem; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 26px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .stat-item {
+    flex: 1;
+    padding: 14px 18px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-val {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Processing */
+  .processing { text-align: center; padding: 70px 0; }
+
+  .spinner-wrap { position: relative; width: 56px; height: 56px; margin: 0 auto 24px; }
+
+  .spinner {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .spinner2 {
+    position: absolute;
+    inset: 8px;
+    border: 2px solid var(--border);
+    border-bottom-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 1.1s linear infinite reverse;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing p { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); }
+
+  .no-results { text-align: center; padding: 50px 0; color: var(--text3); }
+  .no-results p { font-size: 0.9rem; line-height: 1.7; }
+  .no-results span { font-size: 2.4rem; display: block; margin-bottom: 16px; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 620px) {
+    .vitals-grid, .bg-grid, .review-grid { grid-template-columns: 1fr; }
+    .symptom-grid { grid-template-columns: 1fr 1fr; }
+    header { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .logo-area h1 { font-size: 2rem; }
+    .header-badges { align-items: flex-start; }
+    .stats-bar { flex-direction: column; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+    .stat-item:last-child { border-bottom: none; }
+  }
+
+  /* Input validation indicators */
+  .input-group.has-val label .normal-range { opacity: 1; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo-area">
+      <h1>Med<span>Expert</span></h1>
+      <p>Medical Diagnosis Expert System · Phase 4</p>
+    </div>
+    <div class="header-badges">
+      <span class="header-badge">Forward Chaining · Rule-Based</span>
+      <span class="header-badge alt">30 Rules · 6 Conditions</span>
+    </div>
+  </header>
+
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step active" id="step-1">
+      <div class="step-dot">1</div>
+      <div class="step-label">Symptoms</div>
+    </div>
+    <div class="step" id="step-2">
+      <div class="step-dot">2</div>
+      <div class="step-label">Vitals</div>
+    </div>
+    <div class="step" id="step-3">
+      <div class="step-dot">3</div>
+      <div class="step-label">Background</div>
+    </div>
+    <div class="step" id="step-4">
+      <div class="step-dot">4</div>
+      <div class="step-label">Review</div>
+    </div>
+    <div class="step" id="step-5">
+      <div class="step-dot">5</div>
+      <div class="step-label">Diagnosis</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Symptoms -->
+  <div class="section active" id="sec-1">
+    <div class="card">
+      <div class="card-title">🩺 Clinical Symptoms</div>
+      <div class="card-sub">Select all symptoms currently present · multiple selections allowed</div>
+      <div class="symptom-grid" id="symptom-grid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Vitals -->
+  <div class="section" id="sec-2">
+    <div class="card">
+      <div class="card-title">📊 Vital Signs</div>
+      <div class="card-sub">Enter current measurable health indicators · leave blank if unavailable</div>
+      <div class="vitals-grid">
+        <div class="input-group">
+          <label>Body Temperature <span class="unit">°C</span><span class="normal-range">Normal: 36.1–37.2</span></label>
+          <input type="number" id="v-temp" placeholder="e.g. 37.5" step="0.1" min="34" max="43" oninput="checkVital(this,'temp')">
+          <div class="vital-hint" id="hint-temp"></div>
+        </div>
+        <div class="input-group">
+          <label>Heart Rate <span class="unit">bpm</span><span class="normal-range">Normal: 60–100</span></label>
+          <input type="number" id="v-hr" placeholder="e.g. 80" min="30" max="250" oninput="checkVital(this,'hr')">
+          <div class="vital-hint" id="hint-hr"></div>
+        </div>
+        <div class="input-group">
+          <label>Oxygen Saturation (SpO₂) <span class="unit">%</span><span class="normal-range">Normal: ≥95</span></label>
+          <input type="number" id="v-spo2" placeholder="e.g. 97" min="50" max="100" oninput="checkVital(this,'spo2')">
+          <div class="vital-hint" id="hint-spo2"></div>
+        </div>
+        <div class="input-group">
+          <label>Blood Pressure <span class="unit">mmHg</span><span class="normal-range">Normal: &lt;120/80</span></label>
+          <input type="text" id="v-bp" placeholder="e.g. 140/90" oninput="checkVital(this,'bp')">
+          <div class="vital-hint" id="hint-bp"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Background -->
+  <div class="section" id="sec-3">
+    <div class="card">
+      <div class="card-title">📋 Patient Background</div>
+      <div class="card-sub">Contextual information improves diagnostic accuracy</div>
+      <div class="bg-grid">
+        <div class="input-group">
+          <label>Age</label>
+          <input type="number" id="bg-age" placeholder="e.g. 35" min="0" max="120">
+        </div>
+        <div class="input-group">
+          <label>Gender <span class="unit">(optional)</span></label>
+          <select id="bg-gender">
+            <option value="">Not specified</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="toggle-group">
+          <label>Diabetes</label>
+          <div class="toggle-options">
+            <button class="toggle-btn" data-field="diabetes" data-val="no" onclick="setToggle(this)">No</button>
+            <button class="toggle-btn" data-field="diabetes" data-val="yes" onclick="setToggle(this)">Yes</button>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <label>Hypertension</label>
+          <div class="toggle-options">
+            <button class="toggle-btn" data-field="hypertension" data-val="no" onclick="setToggle(this)">No</button>
+            <button class="toggle-btn" data-field="hypertension" data-val="yes" onclick="setToggle(this)">Yes</button>
+          </div>
+        </div>
+        <div class="toggle-group" style="grid-column:1/-1">
+          <label>Smoking Status <span style="font-size:0.68rem;color:var(--text3)">(optional)</span></label>
+          <div class="toggle-options" style="max-width:260px">
+            <button class="toggle-btn" data-field="smoking" data-val="no" onclick="setToggle(this)">Non-smoker</button>
+            <button class="toggle-btn" data-field="smoking" data-val="yes" onclick="setToggle(this)">Smoker</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Review -->
+  <div class="section" id="sec-4">
+    <div class="card">
+      <div class="card-title">🔍 Review Patient Data</div>
+      <div class="card-sub">Verify all inputs before running the inference engine</div>
+      <div id="review-content"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(3)">← Back</button>
+      <button class="btn btn-danger" onclick="runDiagnosis()">⚡ Run Inference Engine</button>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Results -->
+  <div class="section" id="sec-5">
+    <div id="results-content"></div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn btn-secondary" onclick="resetSystem()">← New Patient</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const state = {
+  symptoms: {
+    fever: false, cough: false, headache: false,
+    shortness_of_breath: false, fatigue: false, chest_pain: false,
+    sore_throat: false, runny_nose: false, dizziness: false
+  },
+  vitals: { temperature: null, heart_rate: null, spo2: null, blood_pressure: null },
+  background: { age: null, gender: '', diabetes: null, hypertension: null, smoking: null }
+};
+
+const SYMPTOM_LABELS = {
+  fever: 'Fever', cough: 'Cough', headache: 'Headache',
+  shortness_of_breath: 'Shortness of Breath', fatigue: 'Fatigue',
+  chest_pain: 'Chest Pain', sore_throat: 'Sore Throat',
+  runny_nose: 'Runny Nose', dizziness: 'Dizziness'
+};
+
+const SYMPTOM_ICONS = {
+  fever:'🌡️', cough:'😮‍💨', headache:'🤕', shortness_of_breath:'🫁',
+  fatigue:'😴', chest_pain:'💔', sore_throat:'🗣️', runny_nose:'🤧', dizziness:'💫'
+};
+
+// ══════════════════════════════════════════════════════════
+// KNOWLEDGE BASE — 30 Rules (matching Design spec exactly)
+// ══════════════════════════════════════════════════════════
+const RULES = [
+  // ── General Fatigue (R1–R5)
+  { id:'R1',  condition:'General Fatigue',     urgency:'LOW',    action:'rest',
+    test: s => s.fatigue && s.headache,
+    desc: 'Fatigue + Headache detected' },
+  { id:'R2',  condition:'General Fatigue',     urgency:'LOW',    action:'rest',
+    test: s => s.fatigue && s.dizziness,
+    desc: 'Fatigue + Dizziness detected' },
+  { id:'R3',  condition:'General Fatigue',     urgency:'LOW',    action:'rest',
+    test: s => s.fatigue && s.temperature !== null && s.temperature < 37.5,
+    desc: 'Fatigue + Normal temperature (< 37.5°C)' },
+  { id:'R4',  condition:'General Fatigue',     urgency:'LOW',    action:'rest',
+    test: s => s.fatigue && s.heart_rate !== null && s.heart_rate >= 60 && s.heart_rate <= 80,
+    desc: 'Fatigue + Normal heart rate (60–80 bpm)' },
+  { id:'R5',  condition:'General Fatigue',     urgency:'LOW',    action:'rest',
+    test: s => s.fatigue && !s.fever && !s.cough && !s.chest_pain && !s.shortness_of_breath,
+    desc: 'Fatigue with no major warning symptoms' },
+
+  // ── Common Cold (R6–R10)
+  { id:'R6',  condition:'Common Cold',         urgency:'LOW',    action:'rest',
+    test: s => s.runny_nose && s.sore_throat,
+    desc: 'Runny nose + Sore throat' },
+  { id:'R7',  condition:'Common Cold',         urgency:'LOW',    action:'otc',
+    test: s => s.cough && s.runny_nose && !s.fever,
+    desc: 'Cough + Runny nose without fever' },
+  { id:'R8',  condition:'Common Cold',         urgency:'LOW',    action:'rest',
+    test: s => s.sore_throat && s.fatigue && !s.fever,
+    desc: 'Sore throat + Mild fatigue (no fever)' },
+  { id:'R9',  condition:'Common Cold',         urgency:'LOW',    action:'rest',
+    test: s => s.runny_nose && s.headache,
+    desc: 'Runny nose + Headache' },
+  { id:'R10', condition:'Common Cold',         urgency:'LOW',    action:'otc',
+    test: s => s.cough && s.sore_throat && s.temperature !== null && s.temperature < 38,
+    desc: 'Cough + Sore throat + Temperature < 38°C' },
+
+  // ── Influenza (R11–R15)
+  { id:'R11', condition:'Influenza (Flu)',      urgency:'MEDIUM', action:'doctor',
+    test: s => s.fever && s.cough,
+    desc: 'Fever + Cough (classic flu presentation)' },
+  { id:'R12', condition:'Influenza (Flu)',      urgency:'MEDIUM', action:'doctor',
+    test: s => s.fever && s.headache && s.fatigue,
+    desc: 'Fever + Headache + Fatigue triad' },
+  { id:'R13', condition:'Influenza (Flu)',      urgency:'MEDIUM', action:'doctor',
+    test: s => s.temperature !== null && s.temperature >= 38 && s.cough && s.fatigue,
+    desc: 'Temperature ≥ 38°C + Cough + Fatigue' },
+  { id:'R14', condition:'Influenza (Flu)',      urgency:'MEDIUM', action:'doctor',
+    test: s => s.fever && s.sore_throat && s.headache,
+    desc: 'Fever + Sore throat + Headache' },
+  { id:'R15', condition:'Influenza (Flu)',      urgency:'MEDIUM', action:'doctor',
+    test: s => s.fever && s.dizziness && s.fatigue,
+    desc: 'Fever + Dizziness + Fatigue' },
+
+  // ── COVID-like Illness (R16–R20)
+  { id:'R16', condition:'COVID-like Illness',  urgency:'HIGH',   action:'doctor',
+    test: s => s.fever && s.cough && s.shortness_of_breath,
+    desc: 'Fever + Cough + Shortness of breath (classic triad)' },
+  { id:'R17', condition:'COVID-like Illness',  urgency:'HIGH',   action:'emergency',
+    test: s => s.fever && s.fatigue && s.spo2 !== null && s.spo2 < 94,
+    desc: 'Fever + Fatigue + SpO₂ < 94% (hypoxia)' },
+  { id:'R18', condition:'COVID-like Illness',  urgency:'HIGH',   action:'doctor',
+    test: s => s.cough && s.shortness_of_breath && s.fatigue,
+    desc: 'Cough + Shortness of breath + Fatigue' },
+  { id:'R19', condition:'COVID-like Illness',  urgency:'MEDIUM', action:'doctor',
+    test: s => s.fever && s.sore_throat && s.fatigue && s.cough,
+    desc: 'Fever + Sore throat + Fatigue + Cough (multi-symptom)' },
+  { id:'R20', condition:'COVID-like Illness',  urgency:'HIGH',   action:'emergency',
+    test: s => s.temperature !== null && s.temperature >= 38 && s.spo2 !== null && s.spo2 < 94,
+    desc: 'Temperature ≥ 38°C + SpO₂ < 94% (fever with hypoxia)' },
+
+  // ── Respiratory Problem (R21–R25)
+  { id:'R21', condition:'Respiratory Problem', urgency:'HIGH',   action:'emergency',
+    test: s => s.shortness_of_breath && s.chest_pain,
+    desc: 'Shortness of breath + Chest pain' },
+  { id:'R22', condition:'Respiratory Problem', urgency:'HIGH',   action:'emergency',
+    test: s => s.spo2 !== null && s.spo2 < 92,
+    desc: 'SpO₂ < 92% (critically low oxygen)' },
+  { id:'R23', condition:'Respiratory Problem', urgency:'HIGH',   action:'emergency',
+    test: s => s.shortness_of_breath && s.heart_rate !== null && s.heart_rate > 110,
+    desc: 'Shortness of breath + Heart rate > 110 bpm' },
+  { id:'R24', condition:'Respiratory Problem', urgency:'MEDIUM', action:'doctor',
+    test: s => s.shortness_of_breath && s.dizziness,
+    desc: 'Shortness of breath + Dizziness' },
+  { id:'R25', condition:'Respiratory Problem', urgency:'HIGH',   action:'emergency',
+    test: s => s.cough && s.shortness_of_breath && s.spo2 !== null && s.spo2 < 94,
+    desc: 'Cough + Shortness of breath + Low SpO₂ (< 94%)' },
+
+  // ── Possible Cardiac Issue (R26–R30)
+  { id:'R26', condition:'Possible Cardiac Issue', urgency:'HIGH', action:'emergency',
+    test: s => s.chest_pain && s.dizziness,
+    desc: 'Chest pain + Dizziness' },
+  { id:'R27', condition:'Possible Cardiac Issue', urgency:'HIGH', action:'emergency',
+    test: s => s.chest_pain && s.shortness_of_breath,
+    desc: 'Chest pain + Shortness of breath' },
+  { id:'R28', condition:'Possible Cardiac Issue', urgency:'HIGH', action:'emergency',
+    test: s => s.chest_pain && s.high_bp === true,
+    desc: 'Chest pain + High blood pressure (systolic ≥ 140 mmHg)' },
+  { id:'R29', condition:'Possible Cardiac Issue', urgency:'MEDIUM', action:'doctor',
+    test: s => s.chest_pain && s.age !== null && s.age > 50,
+    desc: 'Chest pain + Age > 50 (elevated cardiac risk)' },
+  { id:'R30', condition:'Possible Cardiac Issue', urgency:'HIGH', action:'emergency',
+    test: s => s.chest_pain && s.heart_rate !== null && s.heart_rate > 100,
+    desc: 'Chest pain + Heart rate > 100 bpm (tachycardia)' },
+];
+
+// ── Priority weights (base scores)
+const URGENCY_WEIGHT    = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25 };
+const ACTION_PRIORITY   = { emergency: 4, doctor: 3, otc: 2, rest: 1 };
+
+// ── Clinical Subsumption rules (more specific subsumes less specific)
+// { specific, general } = if both present, general is subsumed (replaced/suppressed in output)
+const SUBSUMPTION_RULES = [
+  { specific: 'COVID-like Illness',    subsumed: 'Influenza (Flu)' },
+  { specific: 'Respiratory Problem',   subsumed: 'Common Cold' },
+  { specific: 'Possible Cardiac Issue',subsumed: 'General Fatigue' },
+  { specific: 'COVID-like Illness',    subsumed: 'Common Cold' },
+];
+
+// ── Action definitions
+const ACTIONS = {
+  rest:      { label: 'Rest at Home',            desc: 'Monitor your symptoms at home. Rest, stay hydrated, and return to care if symptoms worsen or new symptoms develop.', icon: '🛏️' },
+  otc:       { label: 'Over-the-Counter Medication', desc: 'Visit a pharmacy for appropriate OTC medication (e.g. decongestant, paracetamol). Monitor for changes.', icon: '💊' },
+  doctor:    { label: 'Visit a Doctor Soon',     desc: 'Schedule an appointment with a general practitioner within 1–2 days. Do not delay if symptoms worsen.', icon: '🏥' },
+  emergency: { label: 'Seek Emergency Care Now', desc: 'Go to the emergency department or call emergency services immediately. Do not wait.', icon: '🚨' }
+};
+
+// ── Urgency descriptions
+const URGENCY_DESC = {
+  CRITICAL: 'Life-threatening condition detected. Emergency care is essential.',
+  HIGH:     'Serious condition detected. Urgent medical attention is required.',
+  MEDIUM:   'Moderate condition identified. Medical consultation is recommended.',
+  LOW:      'Mild condition. Rest and home monitoring are advised.'
+};
+
+const URGENCY_EMOJI = { CRITICAL:'🆘', HIGH:'⚠️', MEDIUM:'⚡', LOW:'✅' };
+
+// ── WHY explanations per condition
+const CONDITION_WHY = {
+  'General Fatigue': 'Fatigue without accompanying high-urgency symptoms like chest pain or significant shortness of breath typically suggests the body needs rest and recovery. This may reflect inadequate sleep, mild illness, or low energy reserves. Monitoring at home is usually sufficient unless symptoms progress.',
+  'Common Cold': 'The combination of upper respiratory symptoms (runny nose, sore throat, mild cough) without fever is characteristic of a rhinovirus or similar cold infection. These are typically self-limiting and resolve within 7–10 days. OTC medication may ease symptoms.',
+  'Influenza (Flu)': 'The presence of fever combined with systemic symptoms like fatigue, headache, and cough is consistent with influenza, which causes more severe illness than a common cold. Medical evaluation is recommended as antivirals may shorten illness duration if started early.',
+  'COVID-like Illness': 'This symptom profile matches known presentations of COVID-19 or similar respiratory illnesses. The combination of fever, respiratory symptoms, and especially low oxygen saturation warrants urgent assessment, as rapid deterioration is possible.',
+  'Respiratory Problem': 'Critically low oxygen saturation, severe shortness of breath, or respiratory distress requires immediate evaluation. These signs may indicate acute respiratory failure, pneumonia, pulmonary embolism, or other life-threatening conditions requiring emergency intervention.',
+  'Possible Cardiac Issue': 'Chest pain combined with other cardiovascular symptoms such as dizziness, shortness of breath, or elevated heart rate are classic warning signs of a cardiac event such as angina or myocardial infarction (heart attack). Emergency evaluation is essential without delay.'
+};
+
+// ══════════════════════════════════════════════════════════
+// VITAL SIGN VALIDATION — Live hints as user types
+// ══════════════════════════════════════════════════════════
+function checkVital(input, type) {
+  const v = parseFloat(input.value);
+  const hint = document.getElementById('hint-' + type);
+
+  if (!input.value || isNaN(v)) {
+    hint.textContent = '';
+    hint.className = 'vital-hint';
+    input.className = '';
+    return;
+  }
+
+  let cls = 'ok', msg = '';
+
+  if (type === 'temp') {
+    if (v < 36.1)       { cls = 'warn';   msg = '⚠ Low temperature'; }
+    else if (v < 37.3)  { cls = 'ok';     msg = '✓ Normal range'; }
+    else if (v < 38)    { cls = 'warn';   msg = '⚠ Slightly elevated'; }
+    else if (v < 39)    { cls = 'warn';   msg = '⚠ Fever (38–39°C)'; }
+    else                { cls = 'danger'; msg = '✕ High fever (≥ 39°C)'; }
+  } else if (type === 'hr') {
+    if (v < 60)         { cls = 'warn';   msg = '⚠ Bradycardia (< 60 bpm)'; }
+    else if (v <= 100)  { cls = 'ok';     msg = '✓ Normal range'; }
+    else if (v <= 110)  { cls = 'warn';   msg = '⚠ Mildly elevated'; }
+    else                { cls = 'danger'; msg = '✕ Tachycardia (> 110 bpm)'; }
+  } else if (type === 'spo2') {
+    if (v >= 95)        { cls = 'ok';     msg = '✓ Normal range'; }
+    else if (v >= 92)   { cls = 'warn';   msg = '⚠ Low (92–94%) — monitor closely'; }
+    else                { cls = 'danger'; msg = '✕ Critically low — emergency risk'; }
+  } else if (type === 'bp') {
+    const parts = input.value.split('/');
+    if (parts.length === 2) {
+      const sys = parseInt(parts[0]), dia = parseInt(parts[1]);
+      if (!isNaN(sys) && !isNaN(dia)) {
+        if (sys < 120 && dia < 80)       { cls = 'ok';     msg = '✓ Normal blood pressure'; }
+        else if (sys < 130)              { cls = 'warn';   msg = '⚠ Elevated'; }
+        else if (sys < 140)              { cls = 'warn';   msg = '⚠ High Stage 1'; }
+        else                             { cls = 'danger'; msg = '✕ High Stage 2 (≥ 140 mmHg)'; }
+      }
+    }
+  }
+
+  hint.className = 'vital-hint ' + cls;
+  hint.textContent = msg;
+  input.className = cls === 'danger' ? 'danger' : (cls === 'warn' ? 'warn' : '');
+}
+
+// ══════════════════════════════════════════════════════════
+// UI INIT
+// ══════════════════════════════════════════════════════════
+function initSymptoms() {
+  const grid = document.getElementById('symptom-grid');
+  grid.innerHTML = '';
+  Object.entries(SYMPTOM_LABELS).forEach(([key, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'symptom-btn';
+    btn.id = 'sym-' + key;
+    btn.onclick = () => toggleSymptom(key, btn);
+    btn.innerHTML = `<span class="check"></span>${SYMPTOM_ICONS[key]} ${label}`;
+    grid.appendChild(btn);
+  });
+}
+
+function toggleSymptom(key, btn) {
+  state.symptoms[key] = !state.symptoms[key];
+  btn.classList.toggle('selected', state.symptoms[key]);
+  btn.querySelector('.check').textContent = state.symptoms[key] ? '✓' : '';
+}
+
+function setToggle(btn) {
+  const field = btn.dataset.field;
+  state.background[field] = btn.dataset.val;
+  btn.closest('.toggle-options').querySelectorAll('.toggle-btn').forEach(b => {
+    b.classList.toggle('active', b === btn);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+let currentStep = 1;
+
+function goTo(step) {
+  if (currentStep === 2) collectVitals();
+  if (currentStep === 3) collectBackground();
+  if (step === 4) buildReview();
+
+  document.getElementById('sec-' + currentStep).classList.remove('active');
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('step-' + currentStep).classList.toggle('done', step > currentStep);
+
+  currentStep = step;
+  document.getElementById('sec-' + currentStep).classList.add('active');
+  document.getElementById('step-' + currentStep).classList.remove('done');
+  document.getElementById('step-' + currentStep).classList.add('active');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function collectVitals() {
+  state.vitals.temperature   = parseFloat(document.getElementById('v-temp').value) || null;
+  state.vitals.heart_rate    = parseFloat(document.getElementById('v-hr').value)   || null;
+  state.vitals.spo2          = parseFloat(document.getElementById('v-spo2').value) || null;
+  state.vitals.blood_pressure = document.getElementById('v-bp').value.trim() || null;
+}
+
+function collectBackground() {
+  state.background.age    = parseFloat(document.getElementById('bg-age').value) || null;
+  state.background.gender = document.getElementById('bg-gender').value;
+}
+
+// ══════════════════════════════════════════════════════════
+// REVIEW — Step 4
+// ══════════════════════════════════════════════════════════
+function buildReview() {
+  const selected = Object.keys(state.symptoms).filter(k => state.symptoms[k]);
+  const v = state.vitals, bg = state.background;
+
+  let html = '<div class="review-grid">';
+
+  html += `<div class="review-item" style="grid-column:1/-1">
+    <div class="ri-label">Symptoms (${selected.length} selected)</div>
+    <div class="review-symptoms">
+      ${selected.length
+        ? selected.map(k => `<span class="symptom-tag">${SYMPTOM_ICONS[k]} ${SYMPTOM_LABELS[k]}</span>`).join('')
+        : '<span style="color:var(--text3);font-size:0.82rem">None selected</span>'}
+    </div>
+  </div>`;
+
+  const vi = [
+    ['Temperature', v.temperature !== null ? v.temperature + ' °C' : '—'],
+    ['Heart Rate',  v.heart_rate  !== null ? v.heart_rate  + ' bpm': '—'],
+    ['SpO₂',        v.spo2        !== null ? v.spo2        + ' %'  : '—'],
+    ['Blood Pressure', v.blood_pressure || '—'],
+    ['Age',         bg.age !== null ? bg.age + ' yrs' : '—'],
+    ['Conditions',  [bg.diabetes === 'yes' ? 'Diabetes' : '', bg.hypertension === 'yes' ? 'Hypertension' : ''].filter(Boolean).join(', ') || 'None reported'],
+  ];
+
+  vi.forEach(([lbl, val]) => {
+    html += `<div class="review-item">
+      <div class="ri-label">${lbl}</div>
+      <div class="ri-val">${val}</div>
+    </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('review-content').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// INFERENCE ENGINE — Forward Chaining
+// ══════════════════════════════════════════════════════════
+function buildFactSet() {
+  const facts = { ...state.symptoms, ...state.vitals, ...state.background };
+
+  // Derived fact: high_bp
+  if (state.vitals.blood_pressure) {
+    const parts = state.vitals.blood_pressure.split('/');
+    if (parts.length === 2) {
+      const sys = parseInt(parts[0].trim());
+      facts.high_bp = !isNaN(sys) && sys >= 140;
+    }
+  }
+
+  return facts;
+}
+
+function forwardChain(facts) {
+  const log = [];
+  const pcs = {}; // Possible Conditions Set
+  const firedRules = [];
+
+  const ts = () => new Date().toTimeString().split(' ')[0];
+
+  log.push({ type:'info', msg:'Inference engine initialised. Forward chaining started.' });
+
+  // Log working memory
+  const activeSymptoms = Object.entries(state.symptoms).filter(([,v]) => v).map(([k]) => k);
+  const numericFacts   = Object.entries(state.vitals).filter(([,v]) => v !== null).map(([k,v]) => `${k}=${v}`);
+  log.push({ type:'info', msg:`Working memory — Symptoms: [${activeSymptoms.join(', ') || 'none'}]` });
+  if (numericFacts.length) log.push({ type:'info', msg:`Working memory — Vitals: [${numericFacts.join(', ')}]` });
+  if (state.background.age) log.push({ type:'info', msg:`Working memory — Background: age=${state.background.age}` });
+  if (facts.high_bp !== undefined) log.push({ type:'info', msg:`Derived fact: high_bp=${facts.high_bp}` });
+
+  // ── Stage 2: Parallel rule firing
+  log.push({ type:'info', msg:'Stage 2: Rule matching — evaluating all 30 rules...' });
+
+  RULES.forEach(rule => {
+    try {
+      if (rule.test(facts)) {
+        firedRules.push(rule);
+        log.push({ type:'fire', msg:`${rule.id} FIRED → ${rule.condition} [${rule.urgency}] | ${rule.desc}` });
+
+        if (!pcs[rule.condition]) {
+          pcs[rule.condition] = {
+            name: rule.condition,
+            urgency: rule.urgency,
+            action: rule.action,
+            rules: [],
+            totalRules: RULES.filter(r => r.condition === rule.condition).length,
+            subsumedBy: null
+          };
+        }
+
+        if (URGENCY_WEIGHT[rule.urgency] > URGENCY_WEIGHT[pcs[rule.condition].urgency]) {
+          pcs[rule.condition].urgency = rule.urgency;
+          log.push({ type:'warn', msg:`Urgency upgraded for "${rule.condition}" → ${rule.urgency}` });
+        }
+
+        if (ACTION_PRIORITY[rule.action] > ACTION_PRIORITY[pcs[rule.condition].action]) {
+          pcs[rule.condition].action = rule.action;
+        }
+
+        pcs[rule.condition].rules.push(rule);
+      }
+    } catch(e) {
+      log.push({ type:'err', msg:`Error evaluating ${rule.id}: ${e.message}` });
+    }
+  });
+
+  log.push({ type:'info', msg:`Rule matching complete. ${firedRules.length} rules fired. ${Object.keys(pcs).length} condition(s) inferred.` });
+
+  // ── Stage 3a: Priority Scoring (PS)
+  log.push({ type:'info', msg:'Stage 3: Priority scoring and conflict resolution...' });
+
+  const conditions = Object.values(pcs).map(c => {
+    let ps = URGENCY_WEIGHT[c.urgency];
+    const bonuses = [];
+    if (facts.spo2          !== null && facts.spo2 < 94)          { ps += 5; bonuses.push('low-SpO₂(+5)'); }
+    if (facts.heart_rate    !== null && facts.heart_rate > 110)    { ps += 5; bonuses.push('high-HR(+5)'); }
+    if (facts.temperature   !== null && facts.temperature >= 39)   { ps += 5; bonuses.push('high-temp(+5)'); }
+    if (facts.chest_pain)                                           { ps += 5; bonuses.push('chest-pain(+5)'); }
+    if (facts.shortness_of_breath)                                  { ps += 5; bonuses.push('SOB(+5)'); }
+    if (bonuses.length) log.push({ type:'info', msg:`PS for "${c.name}": base=${URGENCY_WEIGHT[c.urgency]} + bonuses=[${bonuses.join(', ')}] = ${ps}` });
+    const confidence = Math.round((c.rules.length / c.totalRules) * 100);
+    return { ...c, ps, confidence };
+  });
+
+  // ── Stage 3b: Clinical Subsumption
+  SUBSUMPTION_RULES.forEach(sr => {
+    const specific = conditions.find(c => c.name === sr.specific);
+    const general  = conditions.find(c => c.name === sr.subsumed);
+    if (specific && general) {
+      general.subsumedBy = sr.specific;
+      log.push({ type:'sub', msg:`Clinical subsumption: "${sr.subsumed}" subsumed by "${sr.specific}"` });
+    }
+  });
+
+  // ── Stage 3c: Sort by PS → rule count
+  conditions.sort((a, b) => {
+    if (b.ps !== a.ps) return b.ps - a.ps;
+    return b.rules.length - a.rules.length;
+  });
+
+  // ── Stage 3d: Filter — confidence ≥ 10%, max 3, remove subsumed
+  const filtered = conditions.filter(c => c.confidence >= 10 && !c.subsumedBy).slice(0, 3);
+
+  // Collect subsumed info for display
+  const subsumedList = conditions.filter(c => c.subsumedBy);
+
+  if (subsumedList.length) {
+    log.push({ type:'sub', msg:`Subsumed conditions removed from output: ${subsumedList.map(c => c.name).join(', ')}` });
+  }
+
+  log.push({ type:'info', msg:`Output: ${filtered.length} condition(s) after filtering (confidence ≥ 10%, clinical subsumption applied, max 3).` });
+
+  return { conditions: filtered, subsumedList, firedRules, log, facts };
+}
+
+// ══════════════════════════════════════════════════════════
+// DIAGNOSIS RUNNER
+// ══════════════════════════════════════════════════════════
+function runDiagnosis() {
+  goTo(5);
+  document.getElementById('results-content').innerHTML = `
+    <div class="processing">
+      <div class="spinner-wrap"><div class="spinner"></div><div class="spinner2"></div></div>
+      <p>Running forward chaining inference engine...</p>
+    </div>`;
+
+  setTimeout(() => {
+    const facts = buildFactSet();
+    const result = forwardChain(facts);
+    renderResults(result);
+  }, 1100);
+}
+
+// ══════════════════════════════════════════════════════════
+// RESULTS RENDERER
+// ══════════════════════════════════════════════════════════
+function renderResults({ conditions, subsumedList, firedRules, log, facts }) {
+  const resultsDiv = document.getElementById('results-content');
+
+  if (conditions.length === 0) {
+    resultsDiv.innerHTML = `
+      <div class="no-results">
+        <span>🔍</span>
+        <p>No conditions matched the provided symptoms and vitals.<br>
+        Please provide more information or consult a healthcare provider directly.</p>
+      </div>`;
+    return;
+  }
+
+  const primary = conditions[0];
+  const topUrgency = conditions.map(c => c.urgency).reduce((best, u) => URGENCY_WEIGHT[u] > URGENCY_WEIGHT[best] ? u : best, 'LOW');
+  const overallAction = ACTIONS[primary.action];
+
+  // ── Working Memory display
+  const activeSymptoms = Object.entries(state.symptoms).filter(([,v]) => v);
+  let wmHtml = `<div class="wm-panel">
+    <div class="wm-title">Working Memory — Input Facts</div>
+    <div class="wm-facts">`;
+  activeSymptoms.forEach(([k]) => {
+    wmHtml += `<span class="wm-fact bool-true">${SYMPTOM_ICONS[k]} ${k.replace(/_/g,' ')} = TRUE</span>`;
+  });
+  if (facts.temperature !== null) wmHtml += `<span class="wm-fact numeric">temp = ${facts.temperature}°C</span>`;
+  if (facts.heart_rate  !== null) wmHtml += `<span class="wm-fact numeric">HR = ${facts.heart_rate} bpm</span>`;
+  if (facts.spo2        !== null) wmHtml += `<span class="wm-fact numeric">SpO₂ = ${facts.spo2}%</span>`;
+  if (facts.blood_pressure)       wmHtml += `<span class="wm-fact numeric">BP = ${facts.blood_pressure} mmHg</span>`;
+  if (facts.age         !== null) wmHtml += `<span class="wm-fact numeric">age = ${facts.age}</span>`;
+  if (facts.high_bp !== undefined) wmHtml += `<span class="wm-fact derived">⚙ high_bp = ${facts.high_bp}</span>`;
+  wmHtml += `</div></div>`;
+
+  // ── Stats bar
+  let statsHtml = `<div class="stats-bar">
+    <div class="stat-item"><div class="stat-val">${firedRules.length}</div><div class="stat-label">Rules Fired</div></div>
+    <div class="stat-item"><div class="stat-val">${conditions.length}</div><div class="stat-label">Conditions Found</div></div>
+    <div class="stat-item"><div class="stat-val">${subsumedList.length}</div><div class="stat-label">Subsumed</div></div>
+    <div class="stat-item"><div class="stat-val">${primary.confidence}%</div><div class="stat-label">Primary Confidence</div></div>
+  </div>`;
+
+  // ── Urgency banner
+  let html = `<div class="results-header">
+    <h2>Diagnosis Complete</h2>
+    <p>${firedRules.length} rules evaluated · ${conditions.length} condition(s) identified · forward chaining</p>
+  </div>`;
+
+  html += wmHtml;
+  html += statsHtml;
+
+  html += `<div class="urgency-banner ${topUrgency}">
+    <div class="urgency-icon">${URGENCY_EMOJI[topUrgency]}</div>
+    <div class="urgency-text">
+      <h3>Overall Urgency: ${topUrgency}</h3>
+      <p>${URGENCY_DESC[topUrgency]}</p>
+    </div>
+    <div class="urgency-badge badge-${topUrgency}">${topUrgency}</div>
+  </div>`;
+
+  html += `<div class="action-card ${topUrgency}">
+    <div class="action-icon">${overallAction.icon}</div>
+    <div class="action-text">
+      <h3>Recommended Action: ${overallAction.label}</h3>
+      <p>${overallAction.desc}</p>
+    </div>
+  </div>`;
+
+  // ── Conditions list
+  html += `<div class="card">
+    <div class="card-title">🧬 Identified Conditions</div>
+    <div class="card-sub">Ranked by priority score · confidence ≥ 10% · clinical subsumption applied · max 3 shown</div>
+    <div class="conditions-list">`;
+
+  conditions.forEach((c, i) => {
+    const rank = ['Primary', 'Secondary', 'Tertiary'][i];
+    const cid  = 'cond-' + i;
+
+    html += `<div class="condition-card ${c.urgency}" style="animation-delay:${i * 0.12}s">
+      <div class="condition-top">
+        <div>
+          <div class="condition-name">${c.name}</div>
+          <div class="condition-rank">${rank} · PS = ${c.ps} · ${c.rules.length}/${c.totalRules} rules matched</div>
+        </div>
+        <div class="condition-meta">
+          <span class="urgency-badge badge-${c.urgency}">${c.urgency}</span>
+        </div>
+      </div>
+
+      <div class="confidence-row">
+        <div class="confidence-label">Confidence</div>
+        <div class="confidence-bar"><div class="confidence-fill fill-${c.urgency}" style="width:0%" data-target="${c.confidence}%"></div></div>
+        <div class="confidence-val">${c.confidence}%</div>
+      </div>
+
+      <div class="explanation-box">
+        <div class="explanation-header">
+          <div class="ex-title">Explanation Facility — Fired Rules</div>
+          <div class="ex-how-why">
+            <button class="ex-btn" onclick="toggleWhy('${cid}', this)">WHY</button>
+          </div>
+        </div>
+        <div class="fired-rules">
+          ${c.rules.map(r => `<div class="fired-rule"><span class="rule-id">${r.id}</span><span>${r.desc}</span></div>`).join('')}
+        </div>
+        <div class="why-panel" id="${cid}-why">
+          <strong>Why ${c.name}?</strong><br><br>${CONDITION_WHY[c.name] || 'Clinical reasoning based on matched rule pattern.'}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // ── Subsumed conditions
+  if (subsumedList.length > 0) {
+    html += `<div class="card" style="border-color:rgba(6,182,212,0.2)">
+      <div class="card-title" style="font-size:1rem">🔄 Subsumed Conditions</div>
+      <div class="card-sub">The following were identified but suppressed by more specific diagnoses</div>`;
+    subsumedList.forEach(c => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span class="urgency-badge badge-${c.urgency}" style="opacity:0.6">${c.urgency}</span>
+        <span style="font-size:0.85rem;color:var(--text2);text-decoration:line-through;opacity:0.7">${c.name}</span>
+        <span class="subsumption-badge">subsumed by ${c.subsumedBy}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── Trace log
+  const traceLines = log.map(entry => {
+    const cls = { info:'tl-info', fire:'tl-fire', warn:'tl-warn', err:'tl-err', sub:'tl-sub' }[entry.type] || '';
+    const t = new Date().toTimeString().split(' ')[0];
+    return `<div class="trace-line"><span class="tl-time">[${t}]</span><span class="${cls}">${entry.msg}</span></div>`;
+  }).join('');
+
+  html += `<div style="margin-top:24px">
+    <button class="trace-toggle" onclick="toggleTrace(this)">
+      <span>▶</span> Show Inference Engine Trace Log (${log.length} entries)
+    </button>
+    <div class="trace-log" id="trace-log">${traceLines}</div>
+  </div>`;
+
+  html += `<div class="disclaimer">
+    <div class="d-icon">⚠️</div>
+    <span>This system is a <strong>decision-support tool only</strong> and does not replace professional medical diagnosis. 
+    Always consult a qualified healthcare provider for proper evaluation and treatment. 
+    In emergencies, call your local emergency services immediately (Egypt: 123).</span>
+  </div>`;
+
+  resultsDiv.innerHTML = html;
+
+  // Animate confidence bars
+  setTimeout(() => {
+    document.querySelectorAll('.confidence-fill[data-target]').forEach(el => {
+      el.style.width = el.dataset.target;
+    });
+  }, 150);
+}
+
+// ══════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════
+function toggleWhy(cid, btn) {
+  const panel = document.getElementById(cid + '-why');
+  panel.classList.toggle('visible');
+  btn.classList.toggle('active');
+  btn.textContent = panel.classList.contains('visible') ? 'HIDE' : 'WHY';
+}
+
+function toggleTrace(btn) {
+  const log = document.getElementById('trace-log');
+  log.classList.toggle('open');
+  const arrow = btn.querySelector('span');
+  arrow.textContent = log.classList.contains('open') ? '▼' : '▶';
+}
+
+function resetSystem() {
+  Object.keys(state.symptoms).forEach(k => state.symptoms[k] = false);
+  state.vitals = { temperature: null, heart_rate: null, spo2: null, blood_pressure: null };
+  state.background = { age: null, gender: '', diabetes: null, hypertension: null, smoking: null };
+
+  ['v-temp','v-hr','v-spo2','v-bp','bg-age'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.className = ''; }
+  });
+  ['hint-temp','hint-hr','hint-spo2','hint-bp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'vital-hint'; }
+  });
+
+  document.getElementById('bg-gender').value = '';
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.symptom-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.querySelector('.check').textContent = '';
+  });
+
+  [1,2,3,4,5].forEach(i => {
+    document.getElementById('step-' + i).classList.remove('active','done');
+    document.getElementById('sec-' + i).classList.remove('active');
+  });
+
+  currentStep = 1;
+  document.getElementById('step-1').classList.add('active');
+  document.getElementById('sec-1').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Boot
+initSymptoms();
+</script>
+</body>
+</html>
