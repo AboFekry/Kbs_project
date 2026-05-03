@@ -48,10 +48,10 @@ MedExpert is a self-contained HTML file with no build step or dependencies.
 
 ```bash
 # Clone or download the project
-git clone <repo-url>
+git clone https://github.com/AboFekry/Kbs_project
 
 # Open directly in a browser
-open index2.html
+open index.html
 ```
 
 No server, no npm install, no compilation required.
